@@ -1,0 +1,113 @@
+---
+title             : "Supplemental Material"
+
+author: 
+  - name          : "Jimmy"
+
+bibliography      : "r-references.bib"
+
+floatsintext      : no
+linenumbers       : yes
+draft             : no
+mask              : no
+
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+
+classoption       : "man"
+header-includes   :
+  - |
+    \makeatletter
+    \renewcommand{\paragraph}{\@startsection{paragraph}{4}{\parindent}%
+      {0\baselineskip \@plus 0.2ex \@minus 0.2ex}%
+      {-1em}%
+      {\normalfont\normalsize\bfseries\typesectitle}}
+    
+    \renewcommand{\subparagraph}[1]{\@startsection{subparagraph}{5}{1em}%
+      {0\baselineskip \@plus 0.2ex \@minus 0.2ex}%
+      {-\z@\relax}%
+      {\normalfont\normalsize\bfseries\itshape\hspace{\parindent}{#1}\textit{\addperi}}{\relax}}
+    \makeatother
+
+csl               : "`r system.file('rmd', 'apa7.csl', package = 'papaja')`"
+documentclass     : "apa7"
+output            : papaja::apa6_pdf
+---
+
+```{r setup, include = FALSE}
+library("papaja")
+library(dplyr)
+library(tidyr)
+r_refs("r-references.bib")
+```
+
+```{r analysis-preferences}
+# Seed for random number generation
+set.seed(42)
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+library(papaja)
+library(stringr)
+
+sim <- readRDS("/Users/jimmy_z/R Projects/R2spa/Qual 1 Paper Draft/Supplemental/All_02262024.rds")
+sim_results <- sim %>% 
+  dplyr::select(-c(beta1, beta2, c(SIM_TIME:WARNINGS), REPLICATIONS)) %>%
+  mutate(across(where(is.numeric), round, 4),
+         cor_xm = ifelse(cor_xm == 0, "0", cor_xm))
+```
+
+# Performance of All-Pair UPI on Estimating $\gamma_{xm}$
+
+```{r standardized bias (raw bias), message=FALSE, warning=FALSE}
+raw_bias <- sim_results %>%
+  dplyr::select(N:raw_bias.upi_yint_est) %>%
+  dplyr::select(-beta3) %>%
+  arrange(N) %>%
+  relocate(cor_xm, .after = rel)
+names(raw_bias) <- c("$\\textit{N}$", "$\\rho$", "$Corr(\\xi_{x}, \\xi_{m})$","All-Pair UPI")
+
+raw_bias_wide <- raw_bias %>%
+  pivot_wider(names_from = `$\\rho$`,
+              values_from = c("All-Pair UPI"), 
+              names_prefix = "corr_") %>%
+  mutate(`$\\textit{N}$` = ifelse(`$Corr(\\xi_{x}, \\xi_{m})$` != 0, " ", `$\\textit{N}$`),
+         across(where(is.numeric), round, 2))
+names(raw_bias_wide) <- c("$\\textit{N}$", "$Corr(\\xi_{x}, \\xi_{m})$", paste(rep(c("$\\rho = .70$", "$\\rho = .80$", "$\\rho = .90$"), 3)))
+
+std_bias <- sim_results %>% 
+  dplyr::select(N:rel, std_bias.upi_yint_est) %>%
+  dplyr::select(-beta3) %>%
+  arrange(N) %>%
+  relocate(cor_xm, .after = rel) 
+names(std_bias) <- c("$\\textit{N}$", "$\\rho$", "$Corr(\\xi_{x}, \\xi_{m})$", "All-Pair UPI")
+
+std_bias_wide <- std_bias %>%
+  pivot_wider(names_from = `$\\rho$`,  
+              values_from = c("All-Pair UPI"), 
+              names_prefix = "corr_") %>%
+  mutate(`$\\textit{N}$` = ifelse(`$Corr(\\xi_{x}, \\xi_{m})$` != 0, " ", `$\\textit{N}$`),
+         across(where(is.numeric), round, 2))
+names(std_bias_wide) <- c("$\\textit{N}$", "$Corr(\\xi_{x}, \\xi_{m})$", paste(rep(c("$\\rho = .70$", "$\\rho = .80$", "$\\rho = .90$"), 3)))
+
+standardized_bias <- raw_bias_wide
+for (col_idx in 3:ncol(raw_bias_wide)) {
+  combined_values <- mapply(FUN = function(x, y) paste(y, "\ (", x, ")", sep = ""),
+                            x = raw_bias_wide[, col_idx], y = std_bias_wide[, col_idx])
+  standardized_bias[, col_idx] <- combined_values
+}
+
+standardized_bias_table <- apa_table(standardized_bias,
+                                    escape = F,
+                                    caption = "Standardized Bias (Average Raw Bias) for $\\gamma_{xm} (= 0.3)$ over 2000 Replications.",
+                                    align = c(rep("c", ncol(standardized_bias))),
+                                    col_spanners = list(`RAPI` = c(3, 5), `Matched-Pair UPI` = c(6, 8), `2S-PA-Int` = c(9, 11)),
+                                    landscape = TRUE,
+                                    font_size = "small",
+                                    note = "$\\textit{N}$ = sample size; $Corr(\\xi_{x}, \\xi_{m})$ = correlation between $\\xi_{x}$ and $\\xi_{m}$; $\\rho$ = reliability level; RAPI = reliability-adjusted product indicator method; Matched-Pair UPI = matched-pair product unconstrained indicator method; 2S-PA-Int = two-stage path analysis with interaction method. Average raw bias are shown in pararenthese. Note that numerical values have been rounded to two decimal places for consistency, which means that some values, while very close to 0 but not exactly 0, are displayed as 0.")
+
+standardized_bias_table
+```
