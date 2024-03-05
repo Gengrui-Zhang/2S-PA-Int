@@ -1,4 +1,4 @@
-# Import data
+# Import dataset
 TA2019 <- zap_formats(zap_labels(read_sav("~/TA2019.sav")))
 
 # Scale 1: ROSENBURG SELF-ESTEEM SCALE
@@ -168,21 +168,11 @@ fit.2spaint <- sem(data = dat.fs,
                    model = model.2spaint)
 
 # Measurement Model Fit
-# Matched-pair UPI
-model.mm.upi <- "# Measurement model
-                   PHQ =~ PHQ1 + PHQ2 + PHQ3 + PHQ4 + PHQ5 + PHQ6 + PHQ7 + PHQ8 + PHQ9
-                   PED =~ PED6 + PED3 + PED7 + PED1 + PED5 + PED2 + PED4
-                   SelfE =~ SelfE10 + SelfE9 + SelfE6 + SelfE7 + SelfE5 + SelfE3 + SelfE8
-                   PED.SelfE =~ PED6.SelfE10 + PED3.SelfE9 + PED7.SelfE6 + PED1.SelfE7 +
-                                PED5.SelfE5 + PED2.SelfE3 + PED4.SelfE8"
-fit.upi.mm <- cfa(model.mm.upi,
-                  data = dat.matchpair)
-fitmeasures(fit.upi.mm)
-# RAPI
-fit.rapi.mm <- cfa(model.fs,
-                   data = dat.centered)
-fitmeasures(fit.rapi.mm)
-# 2S-PA-Int
-fit.2spaint.mm <- cfa(model.fs,
-                      data = dat.centered)
-fitmeasures(fit.2spaint.mm)
+model.mm <- "# Measurement model
+               PHQ =~ PHQ1 + PHQ2 + PHQ3 + PHQ4 + PHQ5 + PHQ6 + PHQ7 + PHQ8 + PHQ9
+               PED =~ PED1 + PED2 + PED3 + PED4 + PED5 + PED6 + PED7
+               SelfE =~ SelfE1 + SelfE2 + SelfE3 + SelfE4 + SelfE5 +
+                        SelfE6 + SelfE7 + SelfE8 + SelfE9 + SelfE10"
+fit.mm <- cfa(model.mm,
+              data = dat.centered)
+fitmeasures(fit.mm)
