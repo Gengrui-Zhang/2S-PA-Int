@@ -15,7 +15,7 @@ library(R2spa)
 # public use dataset [restricted use data, if appropriate].
 # Produced and distributed by the Survey Research Center, Institute for Social Research,
 # University of Michigan, Ann Arbor, MI (2019).
-TA2019 <- zap_formats(zap_labels(read_sav("Qual 2 Paper Draft/TA2019.sav")))
+TA2019 <- zap_formats(zap_labels(read_sav("/Users/jimmy_z/R Projects/R2spa/Qual 2 Paper Draft/TA2019.sav")))
 
 # Hypothesis: Depression is predicted by sef-esteem, Perceived EveryDay Discrimination (PED),
 # and their interaction effect.
