@@ -21,8 +21,13 @@ library(lavaan)
 library(semTools)
 library(dplyr)
 library(mnormt)
-library(R2spa)
-# library(nlsem)
+library(here)
+source("/Users/jimmy_z/R Projects/2S-PA-Int/R/get_fscore.R")
+source("/Users/jimmy_z/R Projects/2S-PA-Int/R/upi.R")
+source("/Users/jimmy_z/R Projects/2S-PA-Int/R/rapi_new.R")
+source("/Users/jimmy_z/R Projects/2S-PA-Int/R/tspa_old.R")
+source("/Users/jimmy_z/R Projects/2S-PA-Int/R/parseInteractionTerms.R")
+source("/Users/jimmy_z/R Projects/2S-PA-Int/R/parseIndicators.R")
 ```
 
 # Introduction
@@ -376,13 +381,13 @@ summary(fit_tspa)
 ```
 
 ```{r function tspa}
-fit_tspa <- tspa(model = "Y ~ b1*X + b2*M + b3*X:M
+fit_tspa <- tspa_old(model = "Y ~ b1*X + b2*M + b3*X:M
                           beta1 := b1 * sqrt(v1)
                           beta2 := b2 * sqrt(v2)
                           beta3 := b3 * sqrt(v1) * sqrt(v2)",
-                   data = fs_dat,
-                   se = list(X = fs_dat$fs_X_se[1],
-                             M = fs_dat$fs_M_se[1]))
+                     data = fs_dat,
+                     se = list(X = fs_dat$fs_X_se[1],
+                               M = fs_dat$fs_M_se[1]))
 summary(fit_tspa)
 ```
 
