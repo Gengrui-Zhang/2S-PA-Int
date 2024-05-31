@@ -10,14 +10,20 @@ library(mnormt)
 library(dplyr)
 library(tidyverse)
 library(MBESS)
-devtools::load_all(".")
+source("/Users/jimmy_z/R Projects/2S-PA-Int/R/get_fscore.R")
+source("/Users/jimmy_z/R Projects/2S-PA-Int/R/get_fsint.R")
+source("/Users/jimmy_z/R Projects/2S-PA-Int/R/upi.R")
+source("/Users/jimmy_z/R Projects/2S-PA-Int/R/rapi_new.R")
+source("/Users/jimmy_z/R Projects/2S-PA-Int/R/tspa_old.R")
+source("/Users/jimmy_z/R Projects/2S-PA-Int/R/parseInteractionTerms.R")
+source("/Users/jimmy_z/R Projects/2S-PA-Int/R/parseIndicators.R")
 
 # Data Generation
 
 # Helper Function
 generate_sem_data <- function(N, model, Alpha, Phi, Lambda, Gamma, Theta, SD_y) {
   # Generate scores for observed items: x1 - x3, m1 - m3
-  eta_scores <- rmnorm(N, mean = Alpha, varcov = Phi) # Factor scores
+  eta_scores <- rmnorm(N, mean = Alpha, varcov = Phi) # Simulate latent scores
   # Generate eta scores with interaction
   eta_scores_int <- cbind(eta_scores, eta_scores[,1]*eta_scores[,2])
   delta <- rmnorm(N, mean = rep(0, length(diag(Theta))), varcov = Theta) # Errors/Residuals of Indicators
@@ -45,11 +51,9 @@ generate_sem_data <- function(N, model, Alpha, Phi, Lambda, Gamma, Theta, SD_y) 
 
 DESIGNFACTOR <- createDesign(
   N = c(100, 250, 500),
-  beta1 = 1,  # fixed
-  beta2 = 0.9,  # fixed
-  beta3 = 0.75,  # three conditions
   cor_xm = c(0, 0.3, 0.6), # correlation between latent x and m / error variance of Y
-  rel = c(0.7, 0.8, 0.9)
+  rel = c(0.7, 0.8, 0.9),
+  gamma_xm = c(0, 0.3) # Two levels of the interaction effect
 )
 
 FIXED_PARAMETER <- list(model = '
@@ -65,47 +69,45 @@ FIXED_PARAMETER <- list(model = '
                                     beta2 := b2*sqrt(v2)
                                     beta3 := b3*sqrt(v1)*sqrt(v2)
                                   ',
+                        beta1 = 1,  # fixed
+                        beta2 = 0.9,  # fixed
+                        beta3 = 0.75,  # three conditions
                         mu_x = 0, # latent mean of x: fixed at 0
                         mu_m = 0, # latent mean of m: fixed at 0,
-                        mu_xm = 0,
-                        gamma = list(xy = 0.3, # linear effects of x and y: fixed at 0.3
-                                     my = 0.3, # linear effects of x and y: fixed at 0.3
-                                     xmy = 0.3) # # linear effects of xm and y: fixed at 0.3
+                        gamma_x = 0.3,
+                        gamma_m = 0.3
 )
 
 
 GenData <- function (condition, fixed_objects = NULL) {
   N <- condition$N # Sample size
-  beta1 <- condition$beta1 # beta 1: fixed at 1
-  beta2 <- condition$beta2 # beta 2: fixed at 0.9
-  beta3 <- condition$beta3 # beta 3: fixed at 0.75
+  mu_x <- fixed_objects$mu_x
+  mu_m <- fixed_objects$mu_m
+  beta1 <- fixed_objects$beta1 # beta 1: fixed at 1
+  beta2 <- fixed_objects$beta2 # beta 2: fixed at 0.9
+  beta3 <- fixed_objects$beta3 # beta 3: fixed at 0.75
   cor_xm <- condition$cor_xm # latent correlation: varied
+  gamma_x <- fixed_objects$gamma_x
+  gamma_m <- fixed_objects$gamma_m
+  gamma_xm <- condition$gamma_xm
+  rel = condition$rel
 
-  if (cor_xm == 0) {
-    sd_y <- 0.8544
-  } else if (cor_xm == 0.3) {
-    sd_y <- 0.8173
-  } else if (cor_xm == 0.6) {
-    sd_y <- 0.7679
-  }
+  # Compute disturbance variance
+  sd_y <- sqrt(1 - (gamma_x^2 + gamma_m^2 + gamma_xm^2 + 2*gamma_x*gamma_m*cor_xm))
 
-  # Error variances
-  if (condition$rel == 0.7) {
-    rel_val <- c(1.32, 0.99, 0.69)
-  } else if (condition$rel == 0.8) {
-    rel_val <- c(0.77, 0.58, 0.40)
-  } else if (condition$rel == 0.9) {
-    rel_val <- c(0.34, 0.26, 0.18)
-  }
+  # Compute error variance
+  sum_error <- sum(c(beta1, beta2, beta3))^2*(1 - rel)/rel
+  err_var <- sum_error*c(0.44, 0.33, 0.23)
 
-  Alpha <- c(fixed_objects$mu_x, fixed_objects$mu_m) # Latent means
-  Phi <- matrix(c(1, condition$cor_xm,
-                  condition$cor_xm, 1), nrow = 2) # latent var/cov
+  # Simulate SEM data
+  Alpha <- c(mu_x, mu_m) # Latent means
+  Phi <- matrix(c(1, cor_xm,
+                  cor_xm, 1), nrow = 2) # latent var/cov
   Lambda <- cbind(c(beta1, beta2, beta3, rep(0, 3)),
                   c(rep(0, 3), beta1, beta2, beta3)) # factor loadings
-  Theta <- diag(rel_val,
+  Theta <- diag(err_var,
                 nrow = 6)
-  Gamma <- rbind(unname(unlist(fixed_objects$gamma)))
+  Gamma <- matrix(c(gamma_x, gamma_m, gamma_xm), nrow = 1)
   SD_y <- sd_y
 
   generate_sem_data(N,
@@ -177,7 +179,7 @@ extract_res <- function (condition, dat, fixed_objects = NULL) {
 evaluate_res <- function (condition, results, fixed_objects = NULL) {
 
   # Population parameter
-  pop_par <- 0.3
+  pop_par <- condition$gamma_xm
 
   # Separate estimates and se
   results_est <- as.data.frame(results[colnames(results)[grepl("_est", colnames(results))]])
@@ -261,19 +263,31 @@ evaluate_res <- function (condition, results, fixed_objects = NULL) {
     return(results)
   }
 
-  # Helper functuion for calculating coverage rate
-  coverage_rate <- function(est, est_se, pop) {
-    ci_est <- list()
+  # Helper function for calculating coverage rate, Type I error rate, and power
+  ci_stats <- function(est, est_se, par, stats_type) {
     est_se <- as.matrix(est_se)
     est <- as.matrix(est)
-    lo.95 <- est - qnorm(.975)*est_se
-    hi.95 <- est + qnorm(.975)*est_se
-    for (i in seq_len(length(colnames(est)))) {
+
+    # Calculate the confidence intervals
+    lo.95 <- est - qnorm(.975) * est_se
+    hi.95 <- est + qnorm(.975) * est_se
+    ci_est <- vector("list", length = ncol(est))
+    names(ci_est) <- colnames(est)
+
+    # Construct confidence intervals for each method
+    for (i in seq_len(ncol(est))) {
       ci_est[[i]] <- cbind(lo.95[,i], hi.95[,i])
-      names(ci_est)[i] <- colnames(est)[i]
     }
-    ci_est <- lapply(ci_est, na.omit)
-    return(unlist(lapply(ci_est, ECR, parameter = pop)))
+    # Determine which statistic to calculate
+    if (stats_type == "Coverage") {
+      return(sapply(ci_est, function(ci) mean(ci[,1] <= par & ci[,2] >= par)))
+    } else if (stats_type == "TypeI") {
+      return(sapply(ci_est, function(ci) mean(ci[,1] > 0 | ci[,2] < 0)))
+    } else if (stats_type == "Power") {
+      return(sapply(ci_est, function(ci) (1 - mean(ci[,1] < 0 & ci[,2] > 0))))
+    } else {
+      return("Invalid stats_type specified. Please choose from 'Coverage', 'TypeI', or 'Power'.")
+    }
   }
 
   # Helper function for convergence rate
@@ -298,9 +312,9 @@ evaluate_res <- function (condition, results, fixed_objects = NULL) {
                               results_se,
                               pop_par,
                               type = "median"),
-    coverage = coverage_rate(results_est,
-                             results_se,
-                             pop = pop_par),
+    coverage = ci_stats(results_est, results_se, par, "Coverage"),
+    type1 = ci_stats(results_est, results_se, par, "TypeI"),
+    power = ci_stats(results_est, results_se, par, "Power"),
     rmse = RMSE(na.omit(results_est),
                 parameter = pop_par),
     raw_rse_bias = rse_bias(results_est,
@@ -332,7 +346,7 @@ evaluate_res <- function (condition, results, fixed_objects = NULL) {
 
 # Run 2000 replications
 
-Match_02262024 <- runSimulation(design = DESIGNFACTOR,
+Match_05292024 <- runSimulation(design = DESIGNFACTOR,
                                replications = 2000,
                                generate = GenData,
                                analyse = extract_res,
@@ -340,9 +354,9 @@ Match_02262024 <- runSimulation(design = DESIGNFACTOR,
                                fixed_objects = FIXED_PARAMETER,
                                save = TRUE,
                                save_results = TRUE,
-                               filename = "Match_02262024",
+                               filename = "Match_05292024",
                                control = list(allow_na = TRUE),
                                parallel = TRUE,
                                ncores = min(4L, parallel::detectCores() - 1))
 
-Match_02262024$seed_value <- seed_value
+Match_05292024$seed_value <- seed_value

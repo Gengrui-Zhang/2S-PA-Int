@@ -23,6 +23,7 @@ library(dplyr)
 library(mnormt)
 library(here)
 source("/Users/jimmy_z/R Projects/2S-PA-Int/R/get_fscore.R")
+source("/Users/jimmy_z/R Projects/2S-PA-Int/R/get_fsint.R")
 source("/Users/jimmy_z/R Projects/2S-PA-Int/R/upi.R")
 source("/Users/jimmy_z/R Projects/2S-PA-Int/R/rapi_new.R")
 source("/Users/jimmy_z/R Projects/2S-PA-Int/R/tspa_old.R")
@@ -381,7 +382,7 @@ summary(fit_tspa)
 ```
 
 ```{r function tspa}
-fit_tspa <- tspa_old(model = "Y ~ b1*X + b2*M + b3*X:M
+fit_tspa <- tspa(model = "Y ~ b1*X + b2*M + b3*X:M
                           beta1 := b1 * sqrt(v1)
                           beta2 := b2 * sqrt(v2)
                           beta3 := b3 * sqrt(v1) * sqrt(v2)",

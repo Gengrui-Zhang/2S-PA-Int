@@ -1,6 +1,6 @@
 # Summarize the results
 
-sim_results <- Match_02222024 %>%
+sim_results <- Match_05292024 %>%
   gather("var", "val", raw_bias.rapi_yint_est:convergence_rate.tspa_yint_est) %>%
   dplyr::select(-c(SIM_TIME:WARNINGS)) %>%
   separate(col = var, into = c("stats", "parmet"), sep = "\\.") %>%
@@ -10,8 +10,8 @@ sim_results <- Match_02222024 %>%
   relocate(REPLICATIONS, .after = last_col()) %>%
   mutate(N_lab = as_factor(paste0("italic(N) == ", N)),
          beta1_lab = as_factor(paste0("\\beta_{1} == ", beta1)),
-         beta2_lab = as_factor(paste0("\\beta_{1} == ", beta2)),
-         beta3_lab = as_factor(paste0("\\beta_{1} == ", beta3)),
+         beta2_lab = as_factor(paste0("\\beta_{2} == ", beta2)),
+         beta3_lab = as_factor(paste0("\\beta_{3} == ", beta3)),
          cor_xm_lab = as_factor(paste0("Correlation_XM == ", cor_xm)),
          rel_lab = as_factor(paste0("Reliability == ", rel)))
 
@@ -91,6 +91,10 @@ sim_plots %>%
   geom_boxplot() +
   facet_grid(cor_xm_lab ~ rel_lab, labeller = label_parsed) +
   labs(x = "Sample Size (N)", y = "Coverage Rate (95%)")
+
+# Type I error rate
+
+# Statistical Power
 
 # RMSE
 sim_plots %>%

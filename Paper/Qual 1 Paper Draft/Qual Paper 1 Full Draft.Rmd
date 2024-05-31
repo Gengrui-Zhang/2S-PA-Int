@@ -58,11 +58,13 @@ library(dplyr)
 library(papaja)
 library(stringr)
 
-sim <- readRDS("/Users/jimmy_z/R Projects/R2spa/Sim_Data/Match_02262024.rds")
+sim <- readRDS("/Users/jimmy_z/R Projects/2S-PA-Int/Sim_Data/Match_05292024.rds")
 sim_results <- sim %>% 
-  dplyr::select(-c(beta1, beta2, c(SIM_TIME:WARNINGS), REPLICATIONS)) %>%
+  dplyr::select(-c(REPLICATIONS:WARNINGS)) %>%
   mutate(across(where(is.numeric), round, 4),
          cor_xm = ifelse(cor_xm == 0, "0", cor_xm))
+sim_null <- sim %>% filter(gamma_xm == 0)
+sim_alt <- sim %>% filter(gamma_xm != 0)
 ```
 
 Social science research increasingly focuses on complex effects (e.g., nonlinear effects, moderation effects) rather than simple bivariate relationships, as the real world is rarely simple and straightforward [@cartePursuitModerationNine2003b; @mackinnonHowWhomMediation2008a; @cunninghamModerationSportManagement2019a]. For example, previous research has demonstrated that exercise can help people lose weight. However, there is growing interest in understanding the specifics of this relationship, including the mechanisms, timing, target groups, and conditions under which exercise is most effective for weight loss. Research into moderation (or interaction) provides insights into these questions by exploring how third variables, or a set of additional variables, influence the dynamics between the variables of interest.
